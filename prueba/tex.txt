@@ -1,0 +1,97 @@
+
+1.Relaciones entre las tablas
+
++. company con version_company
+   Relacion: uno a muchos, ya que una cmpañia puede tener multiples relaciones con 
+   versiones a traves de version_company
+
++.  aplicacion con version
+   Relacion:  es una relacion uno a uno, ya que cada apliacion puede tener solo una version_company
+
++. version con version_company
+   Relacion: es una relacion de uno a muchos porque una version puede estar asociada a multilples aplicacines
+
+Claves
+
+2. SCRIPT PARA LA CREACION DE LA TABLA
+
+CREATE TABLE  vercion_company(
+    vercion_company_id INT AUTO_INCREMENT PRIMARY KEY,
+    version_id INT NOT NULL,
+    company_id INT NOT NULL,
+    UNIQUE(version_id,vercion_company_id),
+    FOREING KEY(version_id)
+    REFERENCES version(version_id) ON DELETE CASCADE, 
+    FOREING KEY(company_id)
+    REFERENCES company(company_id) ON DELETE CASCADE
+);
+
+3.PROCEDIMINETO DE ALMACENAMIENTO EN LAS TABLAS EXPUESTAS
+
+   CREATE TABLE Tpm_llenar_campos (
+    company_name VARCHAR(200),
+    company_code VARCHAR(200),
+    app_name VARCHAR(200),
+    app_code VARCHAR(200),
+    version_number VARCHAR(200)
+);
+  
+CREATE PROCEDURE InsertDataFromTmp()
+BEGIN
+DECLARE done INT DEFAUTL FALSE;
+DECLARE v_company_name VARCHAR (200);
+DECLARE v_company_code VARCHAR (200);
+DECLARE v_app_name VARCHAR (200);
+DECLARE v_app_code VARCHAR (200);
+DECLARE v_version_number VARCHAR (200);
+
+---cursor para seleccionar----
+DECLARE cur CURSOR FOR SELECT company_name,
+company_code,app_name,app_code, version_number FROM Tpm_llenar_campos;
+
+---manejo de execciones para el cursor---
+DECLARE CONTINUE HANDLER FOR NOT FOUNT SET done =TRUE;
+OPEN cur;
+
+---BUCLE PARA RECORRER LOS RESULTADOS----
+
+read_loop: LOOP FETCH cur INTO
+v_company_name,v_company_code,v_app_name,v_app_code,v_version_number;
+    IF done THEN 
+       LEAVE  read_loop;
+    END IF;
+
+----isercion de la tabla company----
+
+INSERT INTO company(company_name,company_code)
+VALUES (v_company_name,v_company_code);
+
+SET @last_company_id= LAST_INSERT_ID();
+
+----isercion de la tabla apliacion----
+
+INSERT INTO apliacion(app_name,app_code)
+VALUES (v_app_name,v_app_code);
+
+SET @last_app_id= LAST_INSERT_ID();
+
+----isercion de la tabla version----
+
+INSERT INTO company(app_id,version_number)
+VALUES (@last_app_id,v_version_number);
+
+SET @last_version_id= LAST_INSERT_ID();
+
+----isercion de la tabla version_company----
+
+INSERT INTO vercion_company(version_id,company_id)
+VALUES (@last_version_id,@last_company_id);
+
+SET @last_version_id= LAST_INSERT_ID();
+
+END LOOP;
+
+CLOSE cur;
+
+
+
